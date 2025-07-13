@@ -3,8 +3,8 @@ from playwright.async_api import async_playwright, TimeoutError as PlaywrightTim
 import requests
 import time
 
-# I need to change this for my personal token and id before executing
-TELEGRAM_TOKEN = "TELEGRAM_TOKEN" 
+# Replace this with actual Telegram bot token and chat ID before running
+TELEGRAM_TOKEN = "TELEGRAM_TOKEN"
 TELEGRAM_CHAT_ID = "TELEGRAM_CHAT_ID"
 
 KEYWORDS = "steam deck oled"
@@ -13,16 +13,17 @@ PRICE_MAX = 350
 
 LAST_SEEN = set()
 
-# 📩 Función para enviar mensajes a Telegram
-def enviar_telegram(mensaje):
+# Function to send messages via Telegram
+def send_telegram_message(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     params = {
         "chat_id": TELEGRAM_CHAT_ID,
-        "text": mensaje
+        "text": message
     }
     requests.get(url, params=params)
 
-async def buscar_wallapop(page):
+# Function to search Wallapop using the defined keywords and price range
+async def search_wallapop(page):
     url = (
         f"https://es.wallapop.com/search?"
         f"keywords={KEYWORDS.replace(' ', '%20')}"
@@ -30,84 +31,87 @@ async def buscar_wallapop(page):
         f"&order_by=newest"
     )
 
+    print(url)
+
     await page.goto(url)
 
-        # Intenta aceptar cookies si aparece el aviso
+    # Try to accept cookie banner if it appears
     try:
-        boton_cookies = await page.wait_for_selector('#onetrust-accept-btn-handler', timeout=5000)
-        if boton_cookies:
-            await boton_cookies.click()
+        accept_cookies_btn = await page.wait_for_selector('#onetrust-accept-btn-handler', timeout=5000)
+        if accept_cookies_btn:
+            await accept_cookies_btn.click()
             await asyncio.sleep(1)
     except PlaywrightTimeoutError:
-        pass  # No apareció el banner de cookies
+        pass  # No cookie banner appeared
 
-    # Espera unos segundos mientras se cargan los productos
+    # Scroll and wait for products to load
     max_scroll_time = 20
     scroll_interval = 1
     start_time = time.time()
 
-    productos = []
+    products = []
     while time.time() - start_time < max_scroll_time:
-        productos = await page.query_selector_all('a.item-card_ItemCard--vertical__FiFz6')
-        if productos:
+        products = await page.query_selector_all('a.item-card_ItemCard--vertical__FiFz6')
+        if products:
             break
         await page.evaluate("window.scrollBy(0, window.innerHeight);")
         await asyncio.sleep(scroll_interval)
 
-    if not productos:
-        print(f"[{KEYWORDS}] No se encontraron productos.")
+    if not products:
+        print(f"[{KEYWORDS}] No products found.")
         return
 
-    nuevos_encontrados = 0
-    mensajes = []
+    new_found = 0
+    messages = []
 
-    # Procesa cada producto encontrado
-    for prod in productos:
-        titulo_el = await prod.query_selector("h3")
-        precio_el = await prod.query_selector('strong[aria-label="Item price"]')
-        enlace = await prod.get_attribute("href")
+    # Process each found product
+    for prod in products:
+        title_el = await prod.query_selector("h3")
+        price_el = await prod.query_selector('strong[aria-label="Item price"]')
+        link = await prod.get_attribute("href")
 
-        if not titulo_el or not precio_el or not enlace:
+        if not title_el or not price_el or not link:
             continue
 
-        titulo = await titulo_el.inner_text()
-        precio_text = await precio_el.inner_text()
-        precio_num_str = ''.join(filter(str.isdigit, precio_text))
-        if not precio_num_str:
+        title = await title_el.inner_text()
+        price_text = await price_el.inner_text()
+        price_num_str = ''.join(filter(str.isdigit, price_text))
+        if not price_num_str:
             continue
 
-        precio_num = int(precio_num_str)
+        price_num = int(price_num_str)
 
-        # Comprueba si cumple el rango de precio y si no ha sido enviado ya
-        if PRICE_MIN <= precio_num <= PRICE_MAX and enlace not in LAST_SEEN:
-            LAST_SEEN.add(enlace)
-            mensaje = f"{titulo}\n{precio_num} €\nhttps://es.wallapop.com{enlace}"
-            mensajes.append(mensaje)
-            nuevos_encontrados += 1
+        # Check if price is within range and if product is not already seen
+        if PRICE_MIN <= price_num <= PRICE_MAX and link not in LAST_SEEN:
+            LAST_SEEN.add(link)
+            message = f"{title}\n{price_num} €\nhttps://es.wallapop.com{link}"
+            messages.append(message)
+            new_found += 1
 
-    # Si hay productos nuevos, primero envía un encabezado, luego cada resultado
-    if nuevos_encontrados > 0:
-        encabezado = f"...................\n\n📦 Resultados para: {KEYWORDS}\n\n..................."
-        enviar_telegram(encabezado)
-        for mensaje in mensajes:
-            enviar_telegram(mensaje)
+    # If new products found, send a header and then the results
+    if new_found > 0:
+        header = f"...................\n\n📦 Results for: {KEYWORDS}\n\n..................."
+        send_telegram_message(header)
+        for message in messages:
+            send_telegram_message(message)
 
-
-# Bucle principal que ejecuta las búsquedas periódicamente
+# Main loop that runs the search periodically
 async def main_loop():
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)  # No abre ventana
+        browser = await p.chromium.launch(headless=True)  # Run in headless mode
         page = await browser.new_page()
 
-    while True:
-        print("\n Iniciando ciclo de búsqueda...")
-        await buscar_wallapop(page)
-        await asyncio.sleep(2)  # Pequeña pausa entre búsquedas
+        while True:
+            try:
+                print("\nStarting search cycle...")
+                await search_wallapop(page)
+                await asyncio.sleep(2)  # Short pause between searches
+            except Exception as e:
+                print(f"Error during search: {e}")
 
-        print(f"\n Esperando 10 minutos para la siguiente búsqueda...\n")
-        await asyncio.sleep(10 * 60)  # Espera 10 mins antes del siguiente ciclo
+            print(f"\nWaiting 10 minutes before the next search...\n")
+            await asyncio.sleep(10 * 60)  # Wait 10 minutes before the next cycle
 
-
-# Ejecuta el script
+# Run the script
 if __name__ == "__main__":
     asyncio.run(main_loop())
