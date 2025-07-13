@@ -11,6 +11,8 @@ KEYWORDS = "steam deck oled"
 PRICE_MIN = 100
 PRICE_MAX = 350
 
+TIME = 5 # Time between searches in minutes
+
 LAST_SEEN = set()
 
 # Function to send messages via Telegram
@@ -109,8 +111,8 @@ async def main_loop():
             except Exception as e:
                 print(f"Error during search: {e}")
 
-            print(f"\nWaiting 10 minutes before the next search...\n")
-            await asyncio.sleep(10 * 60)  # Wait 10 minutes before the next cycle
+            print(f"\nWaiting {TIME} minutes before the next search...\n")
+            await asyncio.sleep(TIME * 60)  # Wait 10 minutes before the next cycle
 
 # Run the script
 if __name__ == "__main__":
