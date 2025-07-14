@@ -133,4 +133,7 @@ async def main_loop():
 
 # Run the script
 if __name__ == "__main__":
-    asyncio.run(main_loop())
+    try:
+        asyncio.run(main_loop())
+    except KeyboardInterrupt:
+        print("\n Programa detenido manualmente con Ctrl + C.")
