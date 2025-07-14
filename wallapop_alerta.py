@@ -2,22 +2,21 @@ import asyncio
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 import requests
 import time
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Replace this with actual Telegram bot token and chat ID before running
-TELEGRAM_TOKEN = "TELEGRAM_TOKEN"
-TELEGRAM_CHAT_ID = "TELEGRAM_CHAT_ID"
-
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 # Here a user can add multiple products to search for
 CONFIGURATIONS = [
     {"keywords": "steam deck oled", "min": 100, "max": 350},
     {"keywords": "rog ally", "min": 100, "max": 400},
 ]
 
-KEYWORDS = "steam deck oled"
-PRICE_MIN = 100
-PRICE_MAX = 350
-
-TIME = 5  # Time between searches in minutes
+TIME = int(os.getenv("TIME"))  # Time between searches in minutes
 
 LAST_SEEN = set()
 
@@ -109,6 +108,8 @@ async def search_wallapop(config, page):
         for message in messages:
             send_telegram_message(message)
 
+    print(f"[{KEYWORDS}] {new_found} new products encountered.")
+
 # Main loop that runs the search periodically
 
 
@@ -121,7 +122,7 @@ async def main_loop():
         while True:
             try:
                 print("\nStarting search cycle...")
-                for config in CONFIGURATIONS:    
+                for config in CONFIGURATIONS:
                     await search_wallapop(config, page)
                     await asyncio.sleep(2)  # Short pause between searches
             except Exception as e:
@@ -136,4 +137,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main_loop())
     except KeyboardInterrupt:
-        print("\n Programa detenido manualmente con Ctrl + C.")
+        print("\n Program manually detained with Ctrl + C.")
