@@ -2,21 +2,19 @@ import asyncio
 from playwright.async_api import async_playwright, TimeoutError as PlaywrightTimeoutError
 import requests
 import time
+import json
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
+with open('data.json', 'r') as file:
+    data = json.load(file)
 
 # Replace this with actual Telegram bot token and chat ID before running
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
+TELEGRAM_TOKEN = data["telegram_token"]
+TELEGRAM_CHAT_ID = data["telegram_chat_id"]
 # Here a user can add multiple products to search for
-CONFIGURATIONS = [
-    {"keywords": "steam deck oled", "min": 100, "max": 350},
-    {"keywords": "rog ally", "min": 100, "max": 400},
-]
+CONFIGURATIONS = data["configurations"]
 
-TIME = int(os.getenv("TIME"))  # Time between searches in minutes
+TIME = data["time"]
 
 LAST_SEEN = set()
 

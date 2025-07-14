@@ -1,0 +1,17 @@
+{
+  "configurations": [
+    {
+      "keywords": "steam deck oled",
+      "min": 100,
+      "max": 350
+    },
+    {
+      "keywords": "rog ally",
+      "min": 100,
+      "max": 400
+    }
+  ],
+  "time": 5,
+  "telegram_token": "TELEGRAM_BOT_TOKEN",
+  "telegram_chat_id": "TELEGRAM_CHAT_ID"
+}
