@@ -7,15 +7,23 @@ import time
 TELEGRAM_TOKEN = "TELEGRAM_TOKEN"
 TELEGRAM_CHAT_ID = "TELEGRAM_CHAT_ID"
 
+# Here a user can add multiple products to search for
+CONFIGURATIONS = [
+    {"keywords": "steam deck oled", "min": 100, "max": 350},
+    {"keywords": "rog ally", "min": 100, "max": 400},
+]
+
 KEYWORDS = "steam deck oled"
 PRICE_MIN = 100
 PRICE_MAX = 350
 
-TIME = 5 # Time between searches in minutes
+TIME = 5  # Time between searches in minutes
 
 LAST_SEEN = set()
 
 # Function to send messages via Telegram
+
+
 def send_telegram_message(message):
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     params = {
@@ -25,15 +33,19 @@ def send_telegram_message(message):
     requests.get(url, params=params)
 
 # Function to search Wallapop using the defined keywords and price range
-async def search_wallapop(page):
+
+
+async def search_wallapop(config, page):
+    KEYWORDS = config["keywords"]
+    PRICE_MIN = config["min"]
+    PRICE_MAX = config["max"]
+
     url = (
         f"https://es.wallapop.com/search?"
         f"keywords={KEYWORDS.replace(' ', '%20')}"
         f"&priceMax={PRICE_MAX}"
         f"&order_by=newest"
     )
-
-    print(url)
 
     await page.goto(url)
 
@@ -98,21 +110,26 @@ async def search_wallapop(page):
             send_telegram_message(message)
 
 # Main loop that runs the search periodically
+
+
 async def main_loop():
     async with async_playwright() as p:
-        browser = await p.chromium.launch(headless=True)  # Run in headless mode
+        # Run in headless mode
+        browser = await p.chromium.launch(headless=True)
         page = await browser.new_page()
 
         while True:
             try:
                 print("\nStarting search cycle...")
-                await search_wallapop(page)
-                await asyncio.sleep(2)  # Short pause between searches
+                for config in CONFIGURATIONS:    
+                    await search_wallapop(config, page)
+                    await asyncio.sleep(2)  # Short pause between searches
             except Exception as e:
                 print(f"Error during search: {e}")
 
             print(f"\nWaiting {TIME} minutes before the next search...\n")
-            await asyncio.sleep(TIME * 60)  # Wait 10 minutes before the next cycle
+            # Wait 10 minutes before the next cycle
+            await asyncio.sleep(TIME * 60)
 
 # Run the script
 if __name__ == "__main__":
