@@ -62,7 +62,7 @@ async def search_wallapop(config, page):
 
     products = []
     while time.time() - start_time < max_scroll_time:
-        products = await page.query_selector_all('a.item-card_ItemCard--vertical__FiFz6')
+        products = await page.query_selector_all('a.item-card_ItemCard--vertical__CNrfk')
         if products:
             break
         await page.evaluate("window.scrollBy(0, window.innerHeight);")
