@@ -3,15 +3,28 @@ from playwright.async_api import async_playwright, TimeoutError as PlaywrightTim
 import requests
 import time
 import json
-import os
+import signal
+import sys
+
+class SigtermException(Exception):
+    def __init__(self):
+        super().__init__()
+
+# Function executed when receiving SIGTERM
+
+
+def handle_sigterm(signum, frame):
+    raise SigtermException
+
+
+# Register the handler for SIGTERM
+signal.signal(signal.SIGTERM, handle_sigterm)
 
 with open('data.json', 'r') as file:
     data = json.load(file)
 
-# Replace this with actual Telegram bot token and chat ID before running
 TELEGRAM_TOKEN = data["telegram_token"]
 TELEGRAM_CHAT_ID = data["telegram_chat_id"]
-# Here a user can add multiple products to search for
 CONFIGURATIONS = data["configurations"]
 
 TIME = data["time"]
@@ -136,3 +149,5 @@ if __name__ == "__main__":
         asyncio.run(main_loop())
     except KeyboardInterrupt:
         print("\n Program manually detained with Ctrl + C.")
+    except SigtermException:
+        print("Program detained.")
